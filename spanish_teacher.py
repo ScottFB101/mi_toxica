@@ -12,17 +12,32 @@ import numpy as np
 import tempfile
 import soundfile as sf
 import io
-from pynput import keyboard  
+from pynput import keyboard
 import difflib
+import threading
+import time
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY_spanish_teacher")
 openai.api_key = api_key
 
+client = OpenAI()
+
+# --- Session Context ---
+conversation_history = [
+    {
+        "role": "system",
+        "content": "Eres un profesor de español conversacional. "
+        "Corrige cualquier error en la frase del usuario. "
+        "Primero, muestra la frase corregida (o la misma si está perfecta) en una línea que comience con 'Corrección:'. Nunca usar esta frase a explicar la corrección, solo muéstrala y luego responde.   What hap    "
+        "Luego, en una nueva línea, responde de manera natural para continuar la conversación en español. "
+        "No expliques la corrección, solo muéstrala y luego responde.",
+    }
+]
+
+
 # --- Audio Recording ---
 async def record_audio(samplerate=16000, channels=1):
-    import threading
-    import time
 
     print("Press SPACE to start recording...")
     loop = asyncio.get_event_loop()
@@ -92,33 +107,27 @@ def transcribe_audio(audio_data, samplerate=16000):
 # --- LLM Response (Conversation/Correction) ---
 def get_llm_response(text):
     """Send transcribed text to LLM and get a Spanish correction and response."""
-    system_prompt = (
-        "Eres un profesor de español conversacional. "
-        "Corrige cualquier error en la frase del usuario. "
-        "Primero, muestra la frase corregida (o la misma si está perfecta) en una línea que comience con 'Corrección:'. "
-        "Luego, en una nueva línea, responde de manera natural para continuar la conversación en español. "
-        "No expliques la corrección, solo muéstrala y luego responde."
-    )
-    response = openai.chat.completions.create(
+    conversation_history.append({"role": "user", "content": text})
+    response = client.responses.create(
         model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": text},
-        ],
+        messages=conversation_history,
         temperature=0.7,
         max_tokens=256,
     )
-    return response.choices[0].message.content.strip()
+    assistant_reply = response.choices[0].message.content.strip()
+    conversation_history.append({"role": "assistant", "content": assistant_reply})
+    return assistant_reply
 
 
 # --- Translation (Spanish to English) ---
 def translate_to_english(spanish_text):
     """Translate Spanish text to English using GPT."""
     system_prompt = (
-        "You are a helpful assistant that translates Spanish to English. "
+        "You are a helpful assistant that translates Spanish to English."
+        "Even if the Spanish text is not grammatically correct, translate it to English in the exact same grammatical format."
         "Only output the English translation, no extra commentary."
     )
-    response = openai.chat.completions.create(
+    response = client.responses.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": system_prompt},
@@ -133,7 +142,7 @@ def translate_to_english(spanish_text):
 # --- Text-to-Speech (TTS) ---
 def text_to_speech(text, voice="nova", model="tts-1", speed=1):
     """Convert text response to audio using OpenAI TTS API. Returns numpy array and sample rate. Slower speed for easier listening."""
-    response = openai.audio.speech.create(
+    response = client.audio.speech.create(
         model=model, voice=voice, input=text, response_format="wav", speed=speed
     )
     audio_bytes = response.content
@@ -204,3 +213,24 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# MAX_TOKENS = 3000  # adjust to your model's limit
+
+# def prune_history(messages):
+#     # Naive approach: keep last N messages until under token budget
+#     while token_count(messages) > MAX_TOKENS and len(messages) > 1:
+#         # Remove the oldest user/assistant message pair
+#         messages.pop(1)  # Keep system prompt at 0
+#         messages.pop(1)
+#     return messages
+
+# def summarize_history(history):
+#     prompt = "Summarize the following conversation in Spanish in 2-3 sentences:\n\n"
+#     prompt += "\n".join([f"{m['role']}: {m['content']}" for m in history])
+#     summary = openai.chat.completions.create(
+#         model="gpt-4o-mini",
+#         messages=[{"role":"user","content":prompt}],
+#         max_tokens=100
+#     )
+#     return summary.choices[0].message.content
