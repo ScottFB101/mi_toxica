@@ -4,6 +4,7 @@
 
 # --- Imports ---
 import os
+from dotenv import load_dotenv
 import openai
 import asyncio
 import sounddevice as sd
@@ -11,9 +12,12 @@ import numpy as np
 import tempfile
 import soundfile as sf
 import io
-from pynput import keyboard
+from pynput import keyboard  
 import difflib
 
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY_spanish_teacher")
+openai.api_key = api_key
 
 # --- Audio Recording ---
 async def record_audio(samplerate=16000, channels=1):
