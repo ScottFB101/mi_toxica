@@ -1,11 +1,13 @@
 # spanish_teacher.py
 # Audio-to-Text-to-Audio Spanish Practice Agent Skeleton
-# Requires: openai, sounddevice or pyaudio, numpy, playsound or sounddevice
+# Requires: openai, sounddevice or pyaudio, numpy, playsound or sou  nddevice
 
 # --- Imports ---
 import os
 from dotenv import load_dotenv
 import openai
+from openai import OpenAI
+from openai.helpers import LocalAudioPlayer
 import asyncio
 import sounddevice as sd
 import numpy as np
@@ -16,24 +18,25 @@ from pynput import keyboard
 import difflib
 import threading
 import time
+from pydantic import BaseModel
 
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY_spanish_teacher")
-openai.api_key = api_key
+api_key_import = os.getenv("OPENAI_API_KEY_spanish_teacher")
+openai.api_key = api_key_import
+client = OpenAI(api_key=api_key_import)
 
-client = OpenAI()
+with open("prompt.txt", "r", encoding="utf-8") as f:
+    instructions = f.read()
 
 # --- Session Context ---
-conversation_history = [
-    {
-        "role": "system",
-        "content": "Eres un profesor de español conversacional. "
-        "Corrige cualquier error en la frase del usuario. "
-        "Primero, muestra la frase corregida (o la misma si está perfecta) en una línea que comience con 'Corrección:'. Nunca usar esta frase a explicar la corrección, solo muéstrala y luego responde.   What hap    "
-        "Luego, en una nueva línea, responde de manera natural para continuar la conversación en español. "
-        "No expliques la corrección, solo muéstrala y luego responde.",
-    }
-]
+llm_system_prompt = (
+    "Eres un profesor de español conversacional. "
+    "Corrige cualquier error en la frase del usuario. "
+    "Primero, muestra la frase corregida (o la misma si está perfecta) en una línea que comience con 'Corrección:'. Nunca usar esta frase a explicar la corrección, solo muéstrala y luego responde.   What hap    "
+    "Luego, en una nueva línea, responde de manera natural para continuar la conversación en español. "
+    "No expliques la corrección, solo muéstrala y luego responde."
+)
+conversation_history = []
 
 
 # --- Audio Recording ---
@@ -110,18 +113,17 @@ def get_llm_response(text):
     conversation_history.append({"role": "user", "content": text})
     response = client.responses.create(
         model="gpt-3.5-turbo",
-        messages=conversation_history,
+        instructions=instructions,  # llm_system_prompt,
+        input=conversation_history,
         temperature=0.7,
-        max_tokens=256,
     )
-    assistant_reply = response.choices[0].message.content.strip()
+    assistant_reply = response.output_text
     conversation_history.append({"role": "assistant", "content": assistant_reply})
     return assistant_reply
 
 
 # --- Translation (Spanish to English) ---
 def translate_to_english(spanish_text):
-    """Translate Spanish text to English using GPT."""
     system_prompt = (
         "You are a helpful assistant that translates Spanish to English."
         "Even if the Spanish text is not grammatically correct, translate it to English in the exact same grammatical format."
@@ -129,14 +131,12 @@ def translate_to_english(spanish_text):
     )
     response = client.responses.create(
         model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": spanish_text},
-        ],
+        instructions=system_prompt,
+        input=spanish_text,
         temperature=0.3,
-        max_tokens=256,
     )
-    return response.choices[0].message.content.strip()
+    # return response.choices[0].message.content.strip()
+    return response.output_text
 
 
 # --- Text-to-Speech (TTS) ---
@@ -191,17 +191,25 @@ def main():
             print(f"\nTú dijiste (español): {text}")
             user_translation = translate_to_english(text)
             print(f"Traducción al inglés: {user_translation}")
+            print("--------------------------------")
             response = get_llm_response(text)
-            lines = response.split("\n", 1)
-            correction = lines[0].replace("Corrección:", "").strip() if lines else ""
-            reply = lines[1] if len(lines) > 1 else ""
-            score = compute_similarity_score(text, correction)
+            print("--------------------------------")
+            print(response)
+            print("--------------------------------")
+            split_response = response.splitlines()
+            correccion = split_response[0]
+            print(correccion)
+            repuesta = split_response[1]
+            print(repuesta)
+            score = compute_similarity_score(text, correccion)
             print(f"Puntaje de corrección: {score}/100")
-            print(f"Corrección: {correction}")
-            print(f"Agente responde: {reply}")
-            translation = translate_to_english(reply)
+            print("--------------------------------")
+            print(repuesta)  # Respuesta
+            translation = translate_to_english(repuesta)
             print(f"English: {translation}")
-            response_audio, sr = text_to_speech(reply)
+            print("--------------------------------")
+            response_audio, sr = text_to_speech(repuesta)
+            # asyncio.run(text_to_speech(repuesta))
             play_audio(response_audio, sr)
             time.sleep(2)
         except KeyboardInterrupt:
