@@ -1,0 +1,9 @@
+# Ejemplos
+
+<user_query>
+Estoy haciendo grandes gracias por preguntar
+</user_query>
+
+<assistant_response>
+['Corrección: Estoy muy bien, gracias', Responde: 'Me alegra oír eso. ¿Qué es lo que te hace tan feliz?']
+</assistant_response>

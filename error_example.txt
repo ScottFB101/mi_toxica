@@ -1,0 +1,27 @@
+Tú dijiste (español): Tú eres viejo.
+Traducción al inglés: You are old.
+--------------------------------
+--------------------------------
+Corrección: 'Tú eres viejo/a.',
+Respuesta: ¿Por qué piensas eso? La edad es solo un número.
+--------------------------------
+Corrección: 'Tú eres viejo/a.',
+Respuesta: ¿Por qué piensas eso? La edad es solo un número.
+Puntaje de corrección: 62/100
+--------------------------------
+Respuesta: ¿Por qué piensas eso? La edad es solo un número.
+English: Response: Why do you think that? Age is just a number.
+--------------------------------
+Habla ahora (presiona Espacio para comenzar y Espacio para terminar la grabación, o Ctrl+C para salir)...
+Press SPACE to start recording...
+ Recording... Press SPACE to stop.
+ Recording finished.
+
+Tú dijiste (español): ¿Por qué es la edad solo un número?
+Traducción al inglés: Why is age just a number?
+--------------------------------
+--------------------------------
+Tienes razón, la edad también puede traer consigo experiencias y sabiduría. Cada etapa de la vida tiene su valor. ¿Qué opinas al respecto?
+--------------------------------
+Tienes razón, la edad también puede traer consigo experiencias y sabiduría. Cada etapa de la vida tiene su valor. ¿Qué opinas al respecto?
+Ocurrió un error: list index out of range
